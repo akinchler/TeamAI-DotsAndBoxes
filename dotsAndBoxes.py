@@ -1,6 +1,8 @@
 import pygame
 import numpy as np
 import sys
+import minimax
+import copy
 
 '''
     Notes:
@@ -82,27 +84,7 @@ class Game:
         self.lineYempty = pygame.image.load("pics/lineYempty.png")
 
         tries = 0
-        # set the start walls randomly but do not create any opportunity to directly close boxes
-        '''while self.start_walls > 0 and tries < 4*self.grid_size**2:
-            x = np.random.randint(self.grid_size)
-            y = np.random.randint(self.grid_size)
-            up = np.random.randint(2)
 
-            if up:
-                if not self.upper_walls_set_flags[x][y] \
-                        and self.get_number_of_walls(x, y) < 2 \
-                        and self.get_number_of_walls(x, y - 1) < 2:
-                    self.upper_walls_set_flags[x][y] = True
-                    self.start_walls -= 1
-            else:
-                if not self.left_walls_set_flags[x][y] \
-                        and self.get_number_of_walls(x, y) < 2 \
-                        and self.get_number_of_walls(x - 1, y) < 2:
-                    self.left_walls_set_flags[x][y] = True
-                    self.start_walls -= 1
-
-            tries += 1
-        '''
         # now it's the first players turn
         self.turn = "A"
         self.show()
@@ -118,7 +100,6 @@ class Game:
                 # Comp's turn
                 if self.turn == 'B':
 
-                    # Combines both walls to get a full list for minimax
                     left_wall_list = []
                     upper_wall_list = []
                     combined_walls = []
@@ -130,31 +111,26 @@ class Game:
                         combined_walls.append(upper_wall_list)
                         left_wall_list = []
                         upper_wall_list = []
+                    testing_grid_copy = copy.copy(self.grid_status)
+                    print(self.grid_status)
+                    print(testing_grid_copy)
+                    print(combined_walls)
+                    value, x_cord, y_cord = minimax.minimax(0, True, combined_walls, testing_grid_copy)
+                    print(value)
+                    print(x_cord)
+                    print(y_cord)
+                    print(self.grid_status)
+                    print(testing_grid_copy)
+                    print(combined_walls)
 
-                    '''
-                        TODO: Create the minimax and set it to give back
-                            - is_upper_wall (True or False)
-                            - x_cord (1 to DETERMINE MAX)
-                            - y_cord (1 to DETERMINE MAX)
-                        
-                        minimax()
-                            Inputs:
-                                - current_depth     0 (starts at root)
-                                - max_depth         4 (so it doesn't calculate to long also for testing)
-                                - max_turn          boolean (true to start)
-                                - full list
-                            Outputs:
-                                - value             int (from heuristic)
-                                - x_cord:           int, (0,max]
-                                - y_cord:           int, (0,max]
-                                
-                        Have to figure out if it in upper or left wall from the cords given
-                        Need to setup a timer from beginning to end of the minimax call
-                    '''
+                    is_upper_wall = None
+                    if x_cord % 2 == 0:
+                        is_upper_wall = False
+                        x_cord = int(x_cord / 2)
+                    elif x_cord % 2 == 1:
+                        x_cord = int((x_cord - 1) / 2)
+                        is_upper_wall = True
 
-                    is_upper_wall = True
-                    x_cord = 1
-                    y_cord = 1
                     if is_upper_wall:
                         self.upper_walls_set_flags[x_cord][y_cord] = True
                         self.screen.blit(self.lineX, (x_cord * 30 + 4, y_cord * 30))
