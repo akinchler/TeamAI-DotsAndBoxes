@@ -1,135 +1,137 @@
 '''
-    Creators: Andrew Kinchler & Isaiah Roh
+    Creators: Andrew Kinchler
     Date: 11/19/2019
 
     This is the file to implement our Minimax algorithm
 '''
 
-import math
-import pygame
+import copy
 
 
+class Node(object):
+    def __init__(self, player_input, depth_input, boxes_input, walls_input, cords_input=None, value_input=0):
+        if cords_input is None:
+            cords_input = []
+        self.player = player_input
+        self.depth = depth_input
+        self.boxes = boxes_input
+        self.walls = walls_input
+        self.cords = cords_input
+        self.value = value_input
+        self.children = []
+        self.create_children()
 
-def minimax(current_depth, max_turn, combined_walls, grid_status):
-    '''
-        Removed max_depth if we want to add that back
-
-        For every value,
-            check to see if no more moves
-                if so return value
-            else
-                for every other value
-                    check to see if no more moves
-
-    '''
-
-    grid_status, get_another_turn = _set_all_slots(grid_status, combined_walls, max_turn)
-
-    if _no_more_moves(combined_walls):
-        return _calculate_score(grid_status), None, None
-    else:
-        for column in range(0, len(combined_walls)):
-            if False in combined_walls[column]:
-                row = combined_walls[column].index(False)
-                combined_walls[column][row] = True
-                break
-
-        best_value = 0
-        my_x_cord = row
-        my_y_cord = column
-        for column in range(len(combined_walls)):
-            for row in range(int(len(combined_walls) / 2)):
-                if not combined_walls[column][row]:
-                    if get_another_turn:
-                        value, x_cord, y_cord = minimax(current_depth, max_turn, combined_walls, grid_status)
-                    else:
-                        value, x_cord, y_cord = minimax(current_depth, not max_turn, combined_walls, grid_status)
-
-                    # if not best_value:
-                    #    best_value = value
-                    #    best_x_cord = row
-                    #    best_y_cord = column
-                    if max_turn:
-                        if value > best_value:
-                            best_value = value
-                            my_x_cord = x_cord
-                            my_y_cord = y_cord
-                    else:
-                        if value < best_value:
-                            best_value = value
-                            my_x_cord = x_cord
-                            my_y_cord = y_cord
-
-        if _no_more_moves(combined_walls):
-            return _calculate_score(grid_status), 0, 0
+    def create_children(self):
+        if _no_more_moves(self.walls) or self.depth <= 0:
+            self.value = _calculate_score(self.boxes)
         else:
-            return best_value, best_x_cord, best_y_cord
+            for column in range(len(self.walls)):
+                for row in range(len(self.boxes)):
+                    if not self.walls[column][row]:
+                        child_boxes = copy.copy(self.boxes)
+                        child_walls = copy.copy(self.walls)
+                        child_walls[column][row] = True
+                        child_cords = [column, row]
+                        child_boxes, get_another_turn = _set_all_slots(child_boxes, child_walls, self.player)
+
+                        if get_another_turn:
+                            self.children.append(Node(self.player, self.depth - 1, child_boxes,
+                                                      child_walls, child_cords))
+                        else:
+                            if self.player == 'A':
+                                self.children.append(Node('B', self.depth - 1, child_boxes, child_walls, child_cords))
+                            elif self.player == 'B':
+                                self.children.append(Node('A', self.depth - 1, child_boxes, child_walls, child_cords))
+                            else:
+                                exit("Node had unexpected player value")
 
 
-def _no_more_moves(combined_walls):
-    for x_cord_list in range(0, len(combined_walls)):
-        if False in combined_walls[x_cord_list]:
+def min_max(node):
+    if node.depth == 0 or not node.children:
+        return node.value, node.cords
+
+    best_value = 1000
+    best_cords = []
+    is_player_a = False
+    if node.player == 'A':
+        best_value = -1000
+        is_player_a = True
+
+    for child in node.children:
+        value, cords = min_max(child)
+        if is_player_a:
+            if value > best_value:
+                best_value = value
+                best_cords = child.cords
+        else:
+            if value < best_value:
+                best_value = value
+                best_cords = child.cords
+
+    return best_value, best_cords
+
+
+def _no_more_moves(walls):
+    for column_list in range(0, len(walls)):
+        if False in walls[column_list]:
             return False
     return True
 
 
-def _set_all_slots(grid_status, combined_walls, max_turn):
+def _set_all_slots(boxes, walls, player):
     get_another_turn = False
 
-    for column in range(len(grid_status)):
-        for row in range(len(grid_status)):
-            if grid_status[column][row] != 0 or _get_number_of_walls(grid_status, combined_walls, column, row) < 4:
+    for column in range(len(boxes)):
+        for row in range(len(boxes)):
+            if boxes[column][row] != 0 or _get_number_of_walls(boxes, walls, column, row) < 4:
                 continue
 
             get_another_turn = True
-            if max_turn:
-                grid_status[column][row] = 2
+            if player == 'A':
+                boxes[column][row] = 1
+            elif player == 'B':
+                boxes[column][row] = 2
             else:
-                grid_status[column][row] = 1
+                boxes[column][row] = 3
 
-    return grid_status, get_another_turn
+    return boxes, get_another_turn
 
 
-def _get_number_of_walls(grid_status, combined_walls, slot_column, slot_row):
+def _get_number_of_walls(boxes, walls, slot_column, slot_row):
     number_of_walls = 0
 
     # if right wall is set
-    if slot_column == len(grid_status) - 1:
+    if slot_column == len(boxes) - 1:
         number_of_walls += 1
-    elif combined_walls[(slot_column * 2) + 2][slot_row]:
+    elif walls[(slot_column * 2) + 2][slot_row]:
         number_of_walls += 1
 
     # if lower wall is set
-    if slot_row == len(grid_status) - 1:
+    if slot_row == len(boxes) - 1:
         number_of_walls += 1
-    elif combined_walls[(slot_column * 2) + 1][slot_row + 1]:
+    elif walls[(slot_column * 2) + 1][slot_row + 1]:
         number_of_walls += 1
 
     # if left wall is set
-    if combined_walls[slot_column * 2][slot_row]:
+    if walls[slot_column * 2][slot_row]:
         number_of_walls += 1
 
     # if upper wall is set
-    if combined_walls[(slot_column * 2) + 1][slot_row]:
+    if walls[(slot_column * 2) + 1][slot_row]:
         number_of_walls += 1
 
     return number_of_walls
 
 
-def _calculate_score(grid_status):
-    player_points = 0
-    comp_points = 0
+def _calculate_score(boxes):
+    player_a = 0
+    player_b = 0
 
-    for column in range(len(grid_status)):
-        for row in range(len(grid_status)):
-            if grid_status[column][row] == 1:
-                player_points += 1
-            else:
-                comp_points += 1
+    for column in range(len(boxes)):
+        for row in range(len(boxes)):
+            if boxes[column][row] == 1:
+                player_a += 1
+            elif boxes[column][row] == 2:
+                player_b += 1
 
-    if player_points > comp_points:
-        return -10
-    elif comp_points > player_points:
-        return 10
-    else:
-        return 0
+    return player_a - player_b

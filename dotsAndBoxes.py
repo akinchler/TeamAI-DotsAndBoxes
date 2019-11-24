@@ -2,36 +2,10 @@ import pygame
 import numpy as np
 import sys
 import minimax
+import otherAlgorithms
 import copy
-
-'''
-    Notes:
-        Walls and Ceiling go from top to bottom on that row for the lists inside of list
-        
-                        Top                                                     Bottom
-        Upper Walls =  [[ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]
-                        [ True False False False False False False False False False]]
-                        
-                        Top                                                     Bottom
-        Left Walls =   [[ True  True  True  True  True  True  True  True  True  True]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]
-                        [False False False False False False False False False False]]
-'''
+import random
+import time
 
 
 class Game:
@@ -44,7 +18,6 @@ class Game:
         self.start_walls = int(0.75 * self.grid_size ** 2)
 
         self.accept_clicks = True
-
         # variables for the boxes for each player (x would be computer)
         self.a_boxes = 0
         self.b_boxes = 0
@@ -54,17 +27,13 @@ class Game:
         self.caption = "'s turn    "
 
         # 0 empty 1 is A 2 is B and 3 is X
-        self.grid_status = np.zeros((self.grid_size, self.grid_size), np.int)
-        self.upper_walls_set_flags = np.zeros((self.grid_size, self.grid_size), np.dtype(bool))
-        self.left_walls_set_flags = np.zeros((self.grid_size, self.grid_size), np.dtype(bool))
+        self.boxes = np.zeros((self.grid_size, self.grid_size), np.int)
+        self.walls = np.zeros((self.grid_size * 2, self.grid_size), np.dtype(bool))
 
-        # set the outer walls
-        for column in range(self.grid_size):
+        for column in range(self.grid_size * 2):
             for row in range(self.grid_size):
-                if column == 0:
-                    self.left_walls_set_flags[column][row] = True
-                if row == 0:
-                    self.upper_walls_set_flags[column][row] = True
+                if column == 0 or (column % 2 == 1 and row == 0):
+                    self.walls[column][row] = True
 
         # initialize pygame
         pygame.init()
@@ -78,126 +47,71 @@ class Game:
         self.B = pygame.image.load("pics/B.png")
         self.X = pygame.image.load("pics/X.png")
         self.block = pygame.image.load("pics/block.png")
-        self.lineX = pygame.image.load("pics/lineX.png")
-        self.lineXempty = pygame.image.load("pics/lineXempty.png")
-        self.lineY = pygame.image.load("pics/lineY.png")
-        self.lineYempty = pygame.image.load("pics/lineYempty.png")
-
-        tries = 0
+        self.line_x = pygame.image.load("pics/lineX.png")
+        self.line_x_empty = pygame.image.load("pics/lineXempty.png")
+        self.line_y = pygame.image.load("pics/lineY.png")
+        self.line_y_empty = pygame.image.load("pics/lineYempty.png")
 
         # now it's the first players turn
-        self.turn = "A"
+        self.turn = 'A'
         self.show()
 
         while True:
-            # go through all events and check the types
-            for event in pygame.event.get():
-                # quit the game when the player closes it
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit(0)
+            column = 0
+            row = 0
+            # Our Minimax's Turn
+            if self.turn == 'A':
+                boxes_copy = copy.copy(self.boxes)
+                walls_copy = copy.copy(self.walls)
+                max_depth = 3
 
-                # Comp's turn
-                if self.turn == 'B':
+                node = minimax.Node('A', max_depth, boxes_copy, walls_copy)
+                best_value, best_cords = minimax.min_max(node)
 
-                    left_wall_list = []
-                    upper_wall_list = []
-                    combined_walls = []
-                    for index in range(0, len(self.left_walls_set_flags)):
-                        for cell in range(0, len(self.left_walls_set_flags)):
-                            left_wall_list.append(self.left_walls_set_flags[index][cell])
-                            upper_wall_list.append(self.upper_walls_set_flags[index][cell])
-                        combined_walls.append(left_wall_list)
-                        combined_walls.append(upper_wall_list)
-                        left_wall_list = []
-                        upper_wall_list = []
-                    testing_grid_copy = copy.copy(self.grid_status)
-                    print(self.grid_status)
-                    print(testing_grid_copy)
-                    print(combined_walls)
-                    value, x_cord, y_cord = minimax.minimax(0, True, combined_walls, testing_grid_copy)
-                    print(value)
-                    print(x_cord)
-                    print(y_cord)
-                    print(self.grid_status)
-                    print(testing_grid_copy)
-                    print(combined_walls)
+                column = best_cords[0]
+                row = best_cords[1]
 
-                    is_upper_wall = None
-                    if x_cord % 2 == 0:
-                        is_upper_wall = False
-                        x_cord = int(x_cord / 2)
-                    elif x_cord % 2 == 1:
-                        x_cord = int((x_cord - 1) / 2)
-                        is_upper_wall = True
+            # Other Alogrithm's turn (Random right now)
+            if self.turn == 'B':
+                cords = otherAlgorithms.pick_randomly(self.walls, self.grid_size)
+                column = cords[0]
+                row = cords[1]
 
-                    if is_upper_wall:
-                        self.upper_walls_set_flags[x_cord][y_cord] = True
-                        self.screen.blit(self.lineX, (x_cord * 30 + 4, y_cord * 30))
-                    else:
-                        self.left_walls_set_flags[x_cord][y_cord] = True
-                        self.screen.blit(self.lineY, (x_cord * 30, y_cord * 30 + 4))
+            self.walls[column][row] = True
 
-                    if not self.set_all_slots() > 0:
-                        if self.turn == "A":
-                            self.turn = "B"
-                        elif self.turn == "B":
-                            self.turn = "A"
+            # the rest is used by both comps
+            if column % 2 == 0:
+                is_horizontal_wall = False
+            else:
+                is_horizontal_wall = True
 
-                    # set the display caption
-                    pygame.display.set_caption(self.turn + self.caption + "     A:" + str(
-                        self.a_boxes) + "   B:" + str(self.x_boxes))
+            column = int(column / 2)
 
-                    # update the players screen
-                    pygame.display.flip()
+            if is_horizontal_wall:
+                self.screen.blit(self.line_x, (column * 30 + 4, row * 30))
+            else:
+                self.screen.blit(self.line_y, (column * 30, row * 30 + 4))
 
-                # left click
-                elif event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]:
-                    if not self.accept_clicks:
-                        continue
+            if not self.set_all_slots() > 0:
+                if self.turn == "A":
+                    self.turn = "B"
+                elif self.turn == "B":
+                    self.turn = "A"
 
-                    # get the current position of the cursor
-                    x = pygame.mouse.get_pos()[0]
-                    y = pygame.mouse.get_pos()[1]
+            if self.won():
+                while True:
+                    for event1 in pygame.event.get():
+                        if event1.type == pygame.QUIT:
+                            pygame.quit()
+                            exit(0)
+            else:
+                # time.sleep(2)
+                # set the display caption
+                pygame.display.set_caption(self.turn + self.caption + "     A:" + str(
+                    self.a_boxes) + "   B:" + str(self.b_boxes))
 
-                    # check whether it was a not set wall that was clicked
-                    wall_x, wall_y = self.get_wall(x, y)
-
-                    if not (wall_x >= 0 and wall_y >= 0):
-                        continue
-
-                    upper_wall = wall_y % 30 == 0
-
-                    if upper_wall:
-                        if not self.upper_walls_set_flags[wall_x//30][wall_y//30]:
-                            self.upper_walls_set_flags[wall_x//30][wall_y//30] = True
-                            self.screen.blit(self.lineX, (wall_x, wall_y))
-                        else:
-                            continue
-                    else:
-                        if not self.left_walls_set_flags[wall_x//30][wall_y//30]:
-                            self.left_walls_set_flags[wall_x//30][wall_y//30] = True
-                            self.screen.blit(self.lineY, (wall_x, wall_y))
-                        else:
-                            continue
-
-                    if not self.set_all_slots() > 0:
-                        if self.turn == "A":
-                            self.turn = "B"
-                        elif self.turn == "B":
-                            self.turn = "A"
-
-                    if self.won():
-                        self.accept_clicks = False
-
-                    else:
-
-                        # set the display caption
-                        pygame.display.set_caption(self.turn + self.caption + "     A:" + str(
-                            self.a_boxes) + "   B:" + str(self.x_boxes))
-
-                        # update the players screen
-                        pygame.display.flip()
+                # update the players screen
+                pygame.display.flip()
 
     def get_number_of_walls(self, slot_column, slot_row):
         """
@@ -210,44 +124,21 @@ class Game:
 
         if slot_column == self.grid_size - 1:
             number_of_walls += 1
-        elif self.left_walls_set_flags[slot_column + 1][slot_row]:
+        elif self.walls[(slot_column * 2) + 2][slot_row]:
             number_of_walls += 1
 
         if slot_row == self.grid_size - 1:
             number_of_walls += 1
-        elif self.upper_walls_set_flags[slot_column][slot_row + 1]:
+        elif self.walls[(slot_column * 2) + 1][slot_row + 1]:
             number_of_walls += 1
 
-        if self.left_walls_set_flags[slot_column][slot_row]:
+        if self.walls[slot_column * 2][slot_row]:
             number_of_walls += 1
 
-        if self.upper_walls_set_flags[slot_column][slot_row]:
+        if self.walls[(slot_column * 2) + 1][slot_row]:
             number_of_walls += 1
 
         return number_of_walls
-
-    @staticmethod
-    def get_wall(pos_x, pos_y):
-        rest_x = pos_x % 30
-        rest_y = pos_y % 30
-
-        wall_slot_x = pos_x//30
-        wall_slot_y = pos_y//30
-
-        # in a corner
-        if rest_x < 4 and rest_y < 4:
-            return -1, -1
-
-        if rest_x < 4:
-            # is left wall of the slot
-            return wall_slot_x*30, wall_slot_y*30 + 4
-
-        if rest_y < 4:
-            # is upper wall of the slot
-            return wall_slot_x*30 + 4, wall_slot_y*30
-
-        # inside the box => not a wall
-        return -1, -1
 
     def set_all_slots(self):
         """
@@ -256,22 +147,22 @@ class Game:
         """
         to_return = 0
 
-        for column_ in range(self.grid_size):
-            for row_ in range(self.grid_size):
-                if self.grid_status[column_][row_] != 0 or self.get_number_of_walls(column_, row_) < 4:
+        for column in range(self.grid_size):
+            for row in range(self.grid_size):
+                if self.boxes[column][row] != 0 or self.get_number_of_walls(column, row) < 4:
                     continue
 
                 if self.turn == "A":
-                    self.grid_status[column_][row_] = 1
-                    self.screen.blit(self.A, (column_ * 30 + 4, row_ * 30 + 4))
+                    self.boxes[column][row] = 1
+                    self.screen.blit(self.A, (column * 30 + 4, row * 30 + 4))
                     self.a_boxes += 1
                 elif self.turn == "B":
-                    self.grid_status[column_][row_] = 2
-                    self.screen.blit(self.B, (column_ * 30 + 4, row_ * 30 + 4))
+                    self.boxes[column][row] = 2
+                    self.screen.blit(self.B, (column * 30 + 4, row * 30 + 4))
                     self.b_boxes += 1
                 elif self.turn == "X":
-                    self.grid_status[column_][row_] = 3
-                    self.screen.blit(self.X, (column_ * 30 + 4, row_ * 30 + 4))
+                    self.boxes[column][row] = 3
+                    self.screen.blit(self.X, (column * 30 + 4, row * 30 + 4))
                     self.x_boxes += 1
 
                 to_return += 1
@@ -311,36 +202,39 @@ class Game:
         self.screen.fill(0)
 
         # loop over all slots
-        for column in range(self.grid_size):
+        for column in range(self.grid_size * 2):
             for row in range(self.grid_size):
-                x, y = column * 30, row * 30
-                self.screen.blit(self.block, (x, y))
-                x += 4
-                if not self.upper_walls_set_flags[column][row]:
-                    self.screen.blit(self.lineXempty, (x, y))
-                else:
-                    self.screen.blit(self.lineX, (x, y))
-                x -= 4
-                y += 4
-                if not self.left_walls_set_flags[column][row]:
-                    self.screen.blit(self.lineYempty, (x, y))
-                else:
-                    self.screen.blit(self.lineY, (x, y))
+                x = int(column / 2) * 30
+                y = row * 30
 
-                # calculate x and y in pixels
-                x, y = column * 30 + 4, row * 30 + 4
+                if column % 2 == 0:
+                    y += 4
+                    if not self.walls[column][row]:
+                        self.screen.blit(self.line_y_empty, (x, y))
+                    else:
+                        self.screen.blit(self.line_y, (x, y))
 
-                if self.grid_status[column][row] == 0:
-                    self.screen.blit(self.empty, (x, y))
-                elif self.grid_status[column][row] == 1:
-                    self.screen.blit(self.A, (x, y))
-                elif self.grid_status[column][row] == 2:
-                    self.screen.blit(self.B, (x, y))
-                elif self.grid_status[column][row] == 3:
-                    self.screen.blit(self.X, (x, y))
+                if column % 2 == 1:
+                    self.screen.blit(self.block, (x, y))
+                    x += 4
+                    if not self.walls[column][row]:
+                        self.screen.blit(self.line_x_empty, (x, y))
+                    else:
+                        self.screen.blit(self.line_x, (x, y))
 
-        pygame.display.set_caption(self.turn + self.caption + "     A:" + str(self.a_boxes) + "   B:" + str(
-            self.b_boxes))
+                    y += 4
+                    box_column = int(column / 2)
+                    if self.boxes[box_column][row] == 0:
+                        self.screen.blit(self.empty, (x, y))
+                    elif self.boxes[box_column][row] == 1:
+                        self.screen.blit(self.A, (x, y))
+                    elif self.boxes[box_column][row] == 2:
+                        self.screen.blit(self.B, (x, y))
+                    elif self.boxes[box_column][row] == 3:
+                        self.screen.blit(self.X, (x, y))
+
+        pygame.display.set_caption(self.turn + self.caption + "     A:" + str(self.a_boxes) + "   B:"
+                                   + str(self.b_boxes))
         pygame.display.flip()
 
 
