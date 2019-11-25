@@ -56,18 +56,25 @@ class Game:
         self.turn = 'A'
         self.show()
 
+        self.max_depth = 2
+        self.total_turns = 0
+        self.turns = 0
+        self.all_turn_times = []
+
         while True:
+            self.total_turns += 1
             column = 0
             row = 0
             # Our Minimax's Turn
             if self.turn == 'A':
+                self.turns += 1
                 boxes_copy = copy.copy(self.boxes)
                 walls_copy = copy.copy(self.walls)
-                max_depth = 3
-
-                node = minimax.Node('A', max_depth, boxes_copy, walls_copy)
+                start = time.time()
+                node = minimax.Node('A', self.max_depth, boxes_copy, walls_copy)
                 best_value, best_cords = minimax.min_max(node)
-
+                turn_time = time.time() - start
+                self.all_turn_times.append(turn_time)
                 column = best_cords[0]
                 row = best_cords[1]
 
@@ -99,6 +106,16 @@ class Game:
                     self.turn = "A"
 
             if self.won():
+                print('Total Turns = ', self.total_turns)
+                print('Minimax Turns = ', self.turns)
+                total_time = 0
+                for round_trip in self.all_turn_times:
+                    total_time += round_trip
+                average_time = total_time / len(self.all_turn_times)
+                print('Depth searched = ', self.max_depth)
+                print('Average Turn Time = ', '{0:.3f}'.format(round(average_time, 3)))
+                print('Maximum Turn Time = ', '{0:.3f}'.format(round(max(self.all_turn_times), 3)))
+                print('Total Minimax Time = ', '{0:.3f}'.format(round(total_time, 3)))
                 while True:
                     for event1 in pygame.event.get():
                         if event1.type == pygame.QUIT:
