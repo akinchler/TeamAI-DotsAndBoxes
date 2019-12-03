@@ -6,6 +6,7 @@
 '''
 
 import copy
+import random
 
 
 class Node(object):
@@ -60,11 +61,11 @@ def min_max(node):
     for child in node.children:
         value, cords = min_max(child)
         if is_player_a:
-            if value > best_value:
+            if value > best_value or (value == best_value and random.randint(1, 10) > 5):
                 best_value = value
                 best_cords = child.cords
         else:
-            if value < best_value:
+            if value < best_value or (value == best_value and random.randint(1, 10) > 5):
                 best_value = value
                 best_cords = child.cords
 
