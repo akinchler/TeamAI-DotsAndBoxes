@@ -82,8 +82,8 @@ class Game:
             # Other Alogrithm's turn (Random right now)
             if self.turn == 'B':
                 # Just uncomment one at a time to get it to play against the minimax algorithm
-                # cords = otherAlgorithms.defensive_algorithm(self.walls, self.boxes)
-                cords, self.my_box = otherAlgorithms.greedy_algorithm(self.walls, self.boxes, self.my_box)
+                cords = otherAlgorithms.defensive_algorithm(self.walls, self.boxes)
+                # cords, self.my_box = otherAlgorithms.greedy_algorithm(self.walls, self.boxes, self.my_box)
                 # cords = otherAlgorithms.pick_randomly(self.walls, self.grid_size)
                 column = cords[0]
                 row = cords[1]
@@ -126,7 +126,7 @@ class Game:
                             pygame.quit()
                             exit(0)
             else:
-                time.sleep(1)
+                # time.sleep(1)
                 # set the display caption
                 pygame.display.set_caption(self.turn + self.caption + "     A:" + str(
                     self.a_boxes) + "   B:" + str(self.b_boxes))
