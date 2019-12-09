@@ -41,6 +41,7 @@ def run_game(i_grid_size, i_algorithm, i_max_depth):
     game_over = False
 
     while not game_over:
+        print('Turn =', total_turns)
         total_turns += 1
         column = 0
         row = 0
@@ -105,7 +106,7 @@ def run_game(i_grid_size, i_algorithm, i_max_depth):
                 opponent = 'Greedy'
             else:
                 opponent = 'Defensive'
-
+            print('Total Time:', total_time)
             result = [grid_size, opponent, starting, max_depth, total_turns, minimax_turns, average_time,
                       max(all_turn_times), total_time, a_boxes, b_boxes, winner]
             RESULTS.append(result)
@@ -160,20 +161,26 @@ def _get_number_of_walls(boxes, walls, slot_column, slot_row):
 
 if __name__ == '__main__':
     # Random
-    for i in range(100):
-        print('Starting Random game:', i)
-        run_game(5, 1, 3)
+    # for i in range(100):
+    #    print('Starting Random game:', i)
+    #    run_game(5, 1, 3)
 
     # Greedy
-    for i in range(100):
-        print('Starting Greedy game:', i)
-        run_game(5, 2, 3)
+    # for i in range(100):
+    #    print('Starting Greedy game:', i)
+    #    run_game(5, 2, 3)
 
     # Defensive
-    for i in range(100):
-        print('Starting Defensive game:', i)
-        run_game(5, 3, 3)
+    # for i in range(100):
+    #    print('Starting Defensive game:', i)
+    #    run_game(5, 3, 3)
+
+    for j in range(1, 4):
+        print('Starting game:', j)
+        run_game(15, j, 2)
 
     with open('output.csv', 'w') as result_file:
         wr = csv.writer(result_file, dialect='excel')
         wr.writerows(RESULTS)
+
+    print('Finished Running')
